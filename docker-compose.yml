@@ -1,0 +1,129 @@
+services:
+  comfyui:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Pin ComfyUI to a known-good commit/tag if desired
+        COMFYUI_REF: "${COMFYUI_REF:-master}"
+        # SageAttention ref (e.g., "main", "v2.2.0", or specific commit)
+        SAGEATTN_REF: "${SAGEATTN_REF:-main}"
+
+    image: comfyui:cu130
+    container_name: comfyui
+
+    # GPU enablement
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ gpu ]
+
+    # LAN exposure
+    ports:
+      - "${COMFYUI_PORT:-8188}:8188"
+
+    environment:
+      COMFYUI_PORT: "${COMFYUI_PORT:-8188}"
+      # Optimized for Grace-Blackwell unified memory architecture
+      # Key insight: check .env.example for explanation regarding each flag
+      COMFYUI_FLAGS: "${COMFYUI_FLAGS:---listen 0.0.0.0 --port 8188 --disable-pinned-memory --use-sage-attention --force-fp16 --bf16-unet --bf16-vae --bf16-text-enc --dont-upcast-attention --disable-mmap}"
+      NVIDIA_VISIBLE_DEVICES: "all"
+      NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
+
+      # Disable torch.compile/inductor - Triton doesn't support Blackwell sm_121a yet
+      TORCH_COMPILE_DISABLE: "1"
+      TORCHDYNAMO_DISABLE: "1"
+
+      # Grace-Blackwell unified memory optimizations
+      CUDA_CACHE_DISABLE: "1"
+      PYTORCH_NO_CUDA_MEMORY_CACHING: "1"
+      CUDA_DEVICE_MAX_CONNECTIONS: "1"
+      CUDA_DEVICE_MAX_COPY_CONNECTIONS: "4"
+      CUDA_MODULE_LOADING: "CUDA" # EAGER works as well, however CUDA loads models in memory a lot faster
+      CUDA_MANAGED_FORCE_DEVICE_ALLOC: "1"
+      OMP_NUM_THREADS: "20"
+      CUBLAS_WORKSPACE_CONFIG: ":0:0"
+
+    volumes:
+      # --- PERSISTENT STORAGE (Read/Write) ---
+
+      # 1. Models (Shared with host)
+      - ${COMFYUI_HOST_PATH}/models:/opt/ComfyUI/models:rw
+
+      # 2. Settings, User workflows, Manager config
+      - ${COMFYUI_DATA_PATH}/user:/opt/ComfyUI/user:rw
+
+      # 3. Custom Nodes
+      - ${COMFYUI_DATA_PATH}/custom_nodes:/opt/ComfyUI/custom_nodes:rw
+
+      # 4. Inputs/Outputs/Workflows
+      - ${COMFYUI_DATA_PATH}/output:/opt/ComfyUI/output:rw
+      - ${COMFYUI_DATA_PATH}/input:/opt/ComfyUI/input:rw
+      - ${COMFYUI_DATA_PATH}/workflows:/opt/ComfyUI/workflows:rw
+
+      # 5. Wheel Vault (Optional)
+      - ${COMFYUI_DATA_PATH}/wheels:/opt/wheels:rw
+
+    networks:
+      - comfy_net
+
+    # Health check - ComfyUI takes time to load, so generous start period
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8188/" ]
+      interval: 30s
+      timeout: 10s
+      start_period: 120s
+      retries: 3
+
+    restart: unless-stopped
+
+  # ComfyUIMini - Mobile-friendly UI
+  # Access at http://<host>:3000
+  comfyuimini:
+    build:
+      context: ./comfyuimini
+      dockerfile: Dockerfile
+      args:
+        COMFYUIMINI_REF: "${COMFYUIMINI_REF:-main}"
+
+    image: comfyuimini:latest
+    container_name: comfyuimini
+
+    ports:
+      - "${COMFYUIMINI_PORT:-3000}:3000"
+
+    environment:
+      # node-config override - connects to comfyui container via docker network
+      NODE_CONFIG: >-
+        {
+          "app_port": 3000,
+          "comfyui_url": "http://comfyui:8188",
+          "comfyui_ws_url": "ws://comfyui:8188",
+          "output_dir": "/shared/output",
+          "reject_unauthorised_cert": false
+        }
+
+    volumes:
+      # Share output directory with ComfyUI for gallery feature (read-only)
+      - ${COMFYUI_DATA_PATH}/output:/shared/output:ro
+      # Persist server-side workflows
+      - comfyuimini_workflows:/app/workflows
+
+    networks:
+      - comfy_net
+
+    depends_on:
+      comfyui:
+        condition: service_healthy
+
+    restart: unless-stopped
+
+networks:
+  comfy_net:
+    driver: bridge
+
+volumes:
+  comfyuimini_workflows:
