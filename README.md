@@ -14,6 +14,7 @@ Built specifically to handle the quirks of the **sm_121 / compute 12.1** archite
 - **Comfy Kitchen** (`comfy_kitchen`) — NVFP4 quantization support for Blackwell
 - **Unified-memory optimized flags** — carefully tuned `COMFYUI_FLAGS` that avoid fighting the Grace-Blackwell memory fabric
 - **Double-VRAM bug fix** — patches `comfy/utils.py` to set `copy=False` in `tensor.to()`, fixing the double memory usage on unified memory systems with `--disable-mmap`
+- **Disabled dynamic vram** — uses `--disable-dynamic-vram` as it doesn't work properly on the Spark, if models fit in memory they won't be unloaded, faster prompt changes to final image/video
 - **ComfyUI-Manager** — auto-installed at container startup into the mounted `custom_nodes` volume
 - **ComfyUIMini** — lightweight mobile/tablet UI proxying to the ComfyUI backend (optional second service)
 - **Health checks** — both services expose health check endpoints for reliable `depends_on` startup ordering
@@ -97,6 +98,9 @@ The default `COMFYUI_FLAGS` are tuned for the Grace-Blackwell unified memory arc
 
 | Flag | Reason |
 |---|---|
+| `--normalvram` | Enforces normal vram mode |
+| `--disable-dynamic-vram` | Disables dynamic vram, keeps models in memory as long as they fit, faster prompt changes to final output |
+| `--reserve-vram 1` | Reserves 1gb of vram to the system, i found it works a bit better with the other flags |
 | `--disable-pinned-memory` | Reduces overhead on the unified memory fabric; pinned memory is counterproductive here |
 | `--use-sage-attention` | Enables SageAttention compiled for sm_121 |
 | `--force-fp16` | Enables Flash Attention path in PyTorch |
