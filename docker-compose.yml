@@ -42,7 +42,7 @@ services:
       PYTORCH_NO_CUDA_MEMORY_CACHING: "1"
       CUDA_DEVICE_MAX_CONNECTIONS: "1"
       CUDA_DEVICE_MAX_COPY_CONNECTIONS: "4"
-      CUDA_MODULE_LOADING: "CUDA" # EAGER works as well, however CUDA loads models in memory a lot faster
+      CUDA_MODULE_LOADING: "LAZY" # EAGER works as well, however LAZY loads models in memory a lot faster
       CUDA_MANAGED_FORCE_DEVICE_ALLOC: "1"
       OMP_NUM_THREADS: "20"
       CUBLAS_WORKSPACE_CONFIG: ":0:0"
