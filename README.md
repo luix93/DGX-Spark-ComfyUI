@@ -118,7 +118,7 @@ The default `COMFYUI_FLAGS` are tuned for the Grace-Blackwell unified memory arc
 | `PYTORCH_NO_CUDA_MEMORY_CACHING=1` | Disables PyTorch CUDA caching allocator — lets the unified memory manager handle allocations |
 | `CUDA_MANAGED_FORCE_DEVICE_ALLOC=1` | Forces managed memory to prefer device allocation |
 | `TORCH_COMPILE_DISABLE=1` / `TORCHDYNAMO_DISABLE=1` | Disables `torch.compile` — Triton does not support `sm_121a` yet |
-| `CUDA_MODULE_LOADING=CUDA` | Loads CUDA modules eagerly for faster model loading |
+| `CUDA_MODULE_LOADING=LAZY` | Loads CUDA modules lazily for faster model loading and more memory efficiency |
 | `OMP_NUM_THREADS=20` | Tuned for the Grace CPU core count |
 
 ---
