@@ -51,14 +51,14 @@ RUN pip install -r /opt/ComfyUI/requirements.txt
 
 # ---- Comfy Kitchen Blackwell Optimization ----
 # Copy your local wheel into the build context
-COPY wheels/comfy_kitchen-0.2.7-cp312-abi3-linux_aarch64.whl /tmp/
+##COPY wheels/comfy_kitchen-0.2.7-cp312-abi3-linux_aarch64.whl /tmp/
 
 # Force install the local wheel
 # We use --force-reinstall to ensure it replaces any version installed by the requirements.txt
-RUN pip install --no-cache-dir --force-reinstall /tmp/comfy_kitchen-0.2.7-cp312-abi3-linux_aarch64.whl
+##RUN pip install --no-cache-dir --force-reinstall /tmp/comfy_kitchen-0.2.7-cp312-abi3-linux_aarch64.whl
 
 # Cleanup the wheel from the layer to save space
-RUN rm /tmp/comfy_kitchen-0.2.7-cp312-abi3-linux_aarch64.whl
+##RUN rm /tmp/comfy_kitchen-0.2.7-cp312-abi3-linux_aarch64.whl
 
 # ---- ComfyUI-Manager ----
 # Handled at runtime by entrypoint.sh (clones if missing in mounted volume)
